@@ -1,7 +1,6 @@
 import GameEnvBackground from '/assets/js/GameEnginev1/essentials/GameEnvBackground.js';
 import Player from '/assets/js/GameEnginev1/essentials/Player.js';
 import Npc from '/assets/js/GameEnginev1/essentials/Npc.js';
-import DialogueSystem from '/assets/js/GameEnginev1/DialogueSystem.js';
 
 class MurderMysteryBossFight {
   static friendlyName = "Level 6: Boss Fight";
@@ -10,7 +9,7 @@ class MurderMysteryBossFight {
     let height = gameEnv.innerHeight;
     let path = gameEnv.path;
 
-    const image_background = path + "/assets/images/murderMystery/bossMap.png"; // be sure to include the path
+    const image_background = path + "/assets/images/bossMap.png"; // be sure to include the path
     const image_data_background = {
         name: 'background',
         greeting: "Your fate has been sealed. Go avenge your fallen comrades.",
@@ -21,9 +20,9 @@ class MurderMysteryBossFight {
 
       const sprite_data_archie = {
         id: 'Archie',
-        src: path + "/images/murderMystery/archie_left.png",
+        src: path + "/assets/images/mcarchie.png",
         SCALE_FACTOR: 4,
-        STEP_FACTOR: 1000,
+        STEP_FACTOR: 0,
         ANIMATION_RATE: 0,
         INIT_POSITION: { x: 250, y: 350 },
         pixels: {height: 150, width: 100},
@@ -42,7 +41,7 @@ class MurderMysteryBossFight {
 
    const sprite_data_boss = {
     id: 'Boss',
-    src: path + "/assets/images/murderMystery/boss.png", // placeholder sprite
+    src: path + "/assets/images/Bossright.png",
     SCALE_FACTOR: 15,
     STEP_FACTOR: 1000,
     ANIMATION_RATE: 0,
@@ -52,28 +51,25 @@ class MurderMysteryBossFight {
     down: { row: 0, start: 0, columns: 1 },
     greeting: "Well, well well. Press E to interact with me. ",
     dialogues: [
-        { speaker: 'Archie', text: "I have recieved this sword. It is the only thing capable of slaying him." },
-        { speaker: 'Boss', text: "From the shadows, I emerge. Your fate has been sealed." },
-        { speaker: 'Archie', text: "I won't stand for this injustice! You will pay for your crimes." },
-        { speaker: 'Boss', text: "Foolish hero... You think that blade can stop me? I will crush you and everything you protect!" },
-        { speaker: 'Archie', text: "*With a swift motion, you raise the sword and strike. The blade cuts through darkness itself.*" },
-        { speaker: 'Boss', text: "No... this cannot be... I am eternal..." },
-        { speaker: 'Archie', text: "You will harm us no more, you monster." },
+        "I have recieved this sword. It is the only thing capable of slaying him.",
+        "From the shadows, I emerge. Your fate has been sealed.",
+        "I won't stand for this injustice! You will pay for your crimes.",
+        "Foolish hero... You think that blade can stop me? I will crush you and everything you protect!",
+        "*With a swift motion, you raise the sword and strike. The blade cuts through darkness itself.*",
+        "No... this cannot be... I am eternal...",
+        "You will harm us no more, you monster."
     ],
     
         interact: function() {
         if (!this.dialogueSystem || !this.spriteData.dialogues) return;
         
         const dialogues = this.spriteData.dialogues;
-        const bossAvatar = this.spriteData?.src || null;
-        const archieAvatar = path + "/images/murderMystery/archie_left.png";
+        const npcName = this.spriteData?.id || "Boss";
+        const npcAvatar = this.spriteData?.src || null;
         
         // Show current dialogue
-        const currentDialogueData = dialogues[this.currentQuestionIndex];
-        const speaker = currentDialogueData.speaker || "Character";
-        const avatar = speaker === 'Archie' ? archieAvatar : bossAvatar;
-        
-        this.dialogueSystem.showDialogue(currentDialogueData.text, speaker, avatar);
+        const currentDialogue = dialogues[this.currentQuestionIndex];
+        this.dialogueSystem.showDialogue(currentDialogue, npcName, npcAvatar);
         this.currentQuestionIndex++;
         
         // Add custom handler for advancing dialogue
@@ -89,11 +85,8 @@ class MurderMysteryBossFight {
                         this.currentQuestionIndex = 0;
                     } else {
                         // Show next line
-                        const nextData = dialogues[this.currentQuestionIndex];
-                        const nextSpeaker = nextData.speaker || "Character";
-                        const nextAvatar = nextSpeaker === 'Archie' ? archieAvatar : bossAvatar;
-                        
-                        this.dialogueSystem.showDialogue(nextData.text, nextSpeaker, nextAvatar);
+                        const nextDialogue = dialogues[this.currentQuestionIndex];
+                        this.dialogueSystem.showDialogue(nextDialogue, npcName, npcAvatar);
                         this.currentQuestionIndex++;
                     }
                 }
@@ -103,14 +96,9 @@ class MurderMysteryBossFight {
     }
 };
 
-    // Initialize DialogueSystem for story sequences
-    const storyDialogue = new DialogueSystem({
-      enableSound: true,
-      typewriterSpeed: 35
-    });
-
     this.classes = [
             { class: GameEnvBackground, data: image_data_background },
+            { class: Player, data: sprite_data_archie },
             { class: Npc, data: sprite_data_boss }
     ];
 
