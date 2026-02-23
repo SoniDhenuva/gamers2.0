@@ -51,13 +51,13 @@ class MurderMysteryBossFight {
     down: { row: 0, start: 0, columns: 1 },
     greeting: "Well, well well. Press E to interact with me. ",
     dialogues: [
-            "I have received this sword. It is the only thing capable of slaying him.",
-        "From the shadows, I emerge. Your fate has been sealed.",
-        "I won't stand for this injustice! You will pay for your crimes.",
-        "Foolish hero... You think that blade can stop me? I will crush you and everything you protect!",
-        "*With a swift motion, you raise the sword and strike. The blade cuts through darkness itself.*",
-        "No... this cannot be... I am eternal...",
-        "You will harm us no more, you monster."
+        { speaker: 'Archie', text: "I have received this sword. It is the only thing capable of slaying you." },
+        { speaker: 'Boss', text: "From the shadows, I emerge. Your fate has been sealed." },
+        { speaker: 'Archie', text: "I won't stand for this injustice! You will pay for your crimes!" },
+        { speaker: 'Boss', text: "Foolish hero... You think that blade can stop me? I will crush you and everything you protect!" },
+        { speaker: 'Archie', text: "*With a swift motion, you raise the sword and strike. The blade cuts through darkness itself.*" },
+        { speaker: 'Boss', text: "No... this cannot be... I am eternal..." },
+        { speaker: 'Archie', text: "You will harm us no more, you monster." }
     ],
     
         interact: function() {
@@ -68,8 +68,9 @@ class MurderMysteryBossFight {
         const npcAvatar = this.spriteData?.src || null;
         
         // Show current dialogue
-        const currentDialogue = dialogues[this.currentQuestionIndex];
-        this.dialogueSystem.showDialogue(currentDialogue, npcName, npcAvatar);
+        const currentDialogueObj = dialogues[this.currentQuestionIndex];
+        const displayName = currentDialogueObj.speaker || npcName;
+        this.dialogueSystem.showDialogue(currentDialogueObj.text, displayName, npcAvatar);
         this.currentQuestionIndex++;
         
         // Add custom handler for advancing dialogue
@@ -85,8 +86,9 @@ class MurderMysteryBossFight {
                         this.currentQuestionIndex = 0;
                     } else {
                         // Show next line
-                        const nextDialogue = dialogues[this.currentQuestionIndex];
-                        this.dialogueSystem.showDialogue(nextDialogue, npcName, npcAvatar);
+                        const nextDialogueObj = dialogues[this.currentQuestionIndex];
+                        const displayName = nextDialogueObj.speaker || npcName;
+                        this.dialogueSystem.showDialogue(nextDialogueObj.text, displayName, npcAvatar);
                         this.currentQuestionIndex++;
                     }
                 }
