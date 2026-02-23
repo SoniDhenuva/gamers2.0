@@ -51,7 +51,7 @@ class MurderMysteryBossFight {
     down: { row: 0, start: 0, columns: 1 },
     greeting: "Well, well well. Press E to interact with me. ",
     dialogues: [
-        "I have recieved this sword. It is the only thing capable of slaying him.",
+            "I have received this sword. It is the only thing capable of slaying him.",
         "From the shadows, I emerge. Your fate has been sealed.",
         "I won't stand for this injustice! You will pay for your crimes.",
         "Foolish hero... You think that blade can stop me? I will crush you and everything you protect!",
