@@ -103,13 +103,6 @@ class MurderMysteryBossFight {
     ];
 
   }
-
-  // Method to trigger the boss battle from game events
-  triggerBossBattle() {
-    if (this.startFinalBattle) {
-      this.startFinalBattle();
-    }
-  }
 }
 
 export default MurderMysteryBossFight;
