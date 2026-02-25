@@ -4,13 +4,6 @@ title: Murder Mystery Game
 permalink: /gamify/murderMystery
 ---
 
-<style>
-/* Page-specific override: undo site-wide black background for game container/canvas */
-#gameContainer, #gameCanvas { background: transparent !important; }
-#gameContainer { background-color: transparent !important; }
-#gameCanvas { background-color: transparent !important; display: block; }
-</style>
-
 <div id="gameContainer">
     <div id="promptDropDown" class="promptDropDown" style="z-index: 9999"></div>
     <canvas id='gameCanvas'></canvas>
@@ -26,9 +19,10 @@ permalink: /gamify/murderMystery
     import MurderMysteryL3 from "/assets/js/murderMystery/MurderMysteryL3.js";
     import MurderMysteryL4 from "/assets/js/murderMystery/MurderMysteryL4.js";
     import MurderMysteryL5 from "/assets/js/murderMystery/MurderMysteryL5.js";
+    import MurderMysteryL6 from "/assets/js/murderMystery/MurderMysteryL6.js";
     import { pythonURI, javaURI, fetchOptions } from '/assets/js/api/config.js';
 
-    const gameLevelClasses = [MurderMysteryL0, MurderMysteryL1, MurderMysteryL2, MurderMysteryL3, MurderMysteryL4, MurderMysteryL5];
+    const gameLevelClasses = [MurderMysteryL0, MurderMysteryL1, MurderMysteryL2, MurderMysteryL3, MurderMysteryL4, MurderMysteryL5, MurderMysteryL6];
 
     // Web Server Environment datas
     const environment = {
