@@ -22,7 +22,7 @@ permalink: /gamify/murderMystery
     import MurderMysteryL6 from "/assets/js/murderMystery/MurderMysteryL6.js";
     import { pythonURI, javaURI, fetchOptions } from '/assets/js/api/config.js';
 
-    const gameLevelClasses = [MurderMysteryL0, MurderMysteryL1, MurderMysteryL2, MurderMysteryL3, MurderMysteryL4, MurderMysteryL5];
+    const gameLevelClasses = [MurderMysteryL0, MurderMysteryL1, MurderMysteryL2, MurderMysteryL3, MurderMysteryL4, MurderMysteryL5, MurderMysteryL6];
 
     // Web Server Environment datas
     const environment = {
