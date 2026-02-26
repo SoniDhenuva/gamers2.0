@@ -990,12 +990,15 @@
             method: 'POST',
             body: JSON.stringify(event)
           }).then(res => {
-            if (res.type === 'opaqueredirect' || res.status === 0 || res.status === 401 || res.status === 403 || (res.redirected && res.url.includes('/login'))) {
+            if (res.type === 'opaqueredirect' || res.status === 401 || res.status === 403) {
               authFailed = true;
               return false;
             }
             return res.ok;
-          }).catch(() => false)
+          }).catch(err => {
+            if (err instanceof TypeError) authFailed = true;
+            return false;
+          })
         )
       );
       
@@ -1030,7 +1033,12 @@
       
     } catch (error) {
       console.error('Error syncing:', error);
-      alert('Error syncing to calendar. Please try again.');
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        alert('Your session has expired. Please log in again to sync events.');
+        window.location.href = '{{ site.baseurl }}/login';
+      } else {
+        alert('Error syncing to calendar. Please try again.');
+      }
     } finally {
       confirmBtn.disabled = false;
       confirmBtn.innerHTML = '<i class="fas fa-sync"></i> Sync Selected';
@@ -1083,7 +1091,7 @@
       // DELETE /api/calendar/delete_event/{id}.
       try {
         const eventsResponse = await fetch(`${javaURI}/api/calendar/events`, fetchOptions);
-        if (eventsResponse.type === 'opaqueredirect' || eventsResponse.status === 0 || eventsResponse.status === 401 || eventsResponse.status === 403 || (eventsResponse.redirected && eventsResponse.url.includes('/login'))) {
+        if (eventsResponse.type === 'opaqueredirect' || eventsResponse.status === 401 || eventsResponse.status === 403) {
           alert('Your session has expired. Please log in again.');
           window.location.href = '{{ site.baseurl }}/login';
           return;
@@ -1147,7 +1155,12 @@
       
     } catch (error) {
       console.error('Error removing:', error);
-      alert('Error removing from calendar. Please try again.');
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        alert('Your session has expired. Please log in again to remove events.');
+        window.location.href = '{{ site.baseurl }}/login';
+      } else {
+        alert('Error removing from calendar. Please try again.');
+      }
     } finally {
       confirmBtn.disabled = false;
       confirmBtn.innerHTML = '<i class="fas fa-trash-alt"></i> Remove Selected';
@@ -1360,7 +1373,7 @@
       
       if (javaURI) {
         const response = await fetch(`${javaURI}/api/calendar/events`, fetchOptions);
-        if (response.type === 'opaqueredirect' || response.status === 0 || response.status === 401 || response.status === 403 || (response.redirected && response.url.includes('/login'))) {
+        if (response.type === 'opaqueredirect' || response.status === 401 || response.status === 403) {
           console.warn('Session expired during calendar preview fetch');
           fetchError = true;
         } else if (response.ok) {
