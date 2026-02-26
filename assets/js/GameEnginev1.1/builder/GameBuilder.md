@@ -2,7 +2,7 @@
 layout: opencs 
 title: GameBuilder
 description: Helping programmers understand how to create a game
-permalink: /gamebuilder
+permalink: /gamebuilderv1-1
 ---
 
 <!-- 
@@ -50,7 +50,7 @@ permalink: /gamebuilder
 <!-- title banner for the GameBuilder page -->
 <div class="gamebuilder-title">
   {{page.title}}
-  <a href="{{site.baseurl}}/gamebuilder/doc" target="_blank" rel="noopener noreferrer">📜</a>
+  <a href="{{site.baseurl}}/gamebuilderv1-1/doc" target="_blank" rel="noopener noreferrer">📜</a>
 </div>
 
 <!-- Ensure GameTemplatesV1 is available as a global by loading templates.js -->
@@ -1570,10 +1570,10 @@ function gamelevel_code(defs = [], classes = []) {
  * Literals are defined at left edge to comply with Code Generation .
 */
 const importsSection = `
-import GameEnvBackground from '/assets/js/GameEnginev1/essentials/GameEnvBackground.js';
-import Player from '/assets/js/GameEnginev1/essentials/Player.js';
-import Npc from '/assets/js/GameEnginev1/essentials/Npc.js';
-import Barrier from '/assets/js/GameEnginev1/essentials/Barrier.js';
+import GameEnvBackground from '/assets/js/GameEnginev1.1/essentials/GameEnvBackground.js';
+import Player from '/assets/js/GameEnginev1.1/essentials/Player.js';
+import Npc from '/assets/js/GameEnginev1.1/essentials/Npc.js';
+import Barrier from '/assets/js/GameEnginev1.1/essentials/Barrier.js';
 `; // end of importSection
 
 const gameLevelStart = `
@@ -2628,7 +2628,7 @@ function generateStepCode(currentStep) {
             ui.gameContainer.id = 'gameContainer';
         }
 
-        const GameModule = await import(baseUrl + '/assets/js/GameEnginev1/essentials/Game.js');
+        const GameModule = await import(baseUrl + '/assets/js/GameEnginev1.1/essentials/Game.js');
         const Game = GameModule.default || GameModule.Core || GameModule;
 
         // Update env dimensions based on container
@@ -2748,7 +2748,7 @@ function generateStepCode(currentStep) {
         code = code.replace(/export\s+const\s+gameLevelClasses\s*=\s*\[\s*GameLevelCustom\s*\];?/g, `export default ${newClassName};`);
 
         // Header with usage instructions reflecting chosen name
-        const header = `// Adventure Game Custom Level\n// Exported from GameBuilder on ${(new Date()).toISOString()}\n// How to use this file:\n// 1) Save as assets/js/adventureGame/${newClassName}.js in your repo.\n// 2) Reference it in your runner or level selector. Examples:\n//    import GameLevelPlanets from '{{site.baseurl}}/assets/js/GameEnginev1/GameLevelPlanets.js';\n//    import ${newClassName} from '{{site.baseurl}}/assets/js/adventureGame/${newClassName}.js';\n//    export const gameLevelClasses = [GameLevelPlanets, ${newClassName}];\n//    // or pass it directly to your GameControl as the only level.\n// 3) Ensure images exist and paths resolve via 'path' provided by the engine.\n// 4) You can add more objects to this.classes inside the constructor.\n`;
+        const header = `// Adventure Game Custom Level\n// Exported from GameBuilder on ${(new Date()).toISOString()}\n// How to use this file:\n// 1) Save as assets/js/adventureGame/${newClassName}.js in your repo.\n// 2) Reference it in your runner or level selector. Examples:\n//    import GameLevelPlanets from '{{site.baseurl}}/assets/js/GameEnginev1.1/GameLevelPlanets.js';\n//    import ${newClassName} from '{{site.baseurl}}/assets/js/adventureGame/${newClassName}.js';\n//    export const gameLevelClasses = [GameLevelPlanets, ${newClassName}];\n//    // or pass it directly to your GameControl as the only level.\n// 3) Ensure images exist and paths resolve via 'path' provided by the engine.\n// 4) You can add more objects to this.classes inside the constructor.\n`;
         code = header + code;
 
         // Download using the chosen class name

@@ -1,7 +1,7 @@
 ---
 layout: opencs
 title: RPG Baseline with Squares 
-permalink: /gamify/squares1-1
+permalink: /gamify/squaresv1-1
 ---
 
 <div id="gameContainer">

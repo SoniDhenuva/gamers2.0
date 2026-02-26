@@ -1,7 +1,7 @@
 ---
 layout: opencs
 title: Adventure Game
-permalink: /gamify/basic1-1
+permalink: /gamify/basicv1-1
 ---
 
 <div id="gameContainer">

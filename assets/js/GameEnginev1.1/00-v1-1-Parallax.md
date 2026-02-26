@@ -1,7 +1,7 @@
 ---
 layout: opencs
 title: RPG Baseline with Squares 
-permalink: /gamify/parallax1-1
+permalink: /gamify/parallaxv1-1
 ---
 
 <div id="gameContainer">

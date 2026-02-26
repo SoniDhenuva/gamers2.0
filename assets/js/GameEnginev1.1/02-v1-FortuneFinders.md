@@ -1,7 +1,7 @@
 ---
 layout: opencs
 title: Fortune Finders
-permalink: /gamify/fortuneFinders/1-1
+permalink: /gamify/fortuneFindersv1-1
 ---
 
 <div id="gameContainer">
