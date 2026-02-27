@@ -36,8 +36,6 @@ permalink: /gamebuilderv1-1
 │             │                                           │
 └─────────────┴──────────────────────────────────────────┘
     20% width            80% width (flexible)
--->
-
 <!-- Minimal page-specific overrides only -->
 <style>
 /* Remove default page wrapper constraints for full-width layout */
@@ -53,15 +51,15 @@ permalink: /gamebuilderv1-1
   <a href="{{site.baseurl}}/gamebuilderv1-1/doc" target="_blank" rel="noopener noreferrer">📜</a>
 </div>
 
-<!-- Ensure GameTemplatesV1 is available as a global by loading templates.js -->
+<!-- Ensure GameTemplatesV1_1 is available as a global by loading templates.js -->
 <script>
     (function(){
         try {
             const s = document.createElement('script');
-            s.src = window.location.origin + './templates.js';
+            s.src = "{{ site.baseurl }}/assets/js/GameEnginev1.1/builder/templates.js";
             s.defer = true;
             document.head.appendChild(s);
-        } catch (e) { console.warn('Could not load GameTemplatesV1', e); }
+        } catch (e) { console.error('GameTemplatesV1_1 loader failed; templates.js must be available', e); }
     })();
 </script>
 
@@ -1197,34 +1195,15 @@ function player_extract(ui, p) {
  * @param {String} name - Variable name for the player data
  * @returns {Object} { def: string, classEntry: string } - Player definition and class entry
  */
-function player_code(px, name = "playerData" ) {
+function player_code(px, p, name = "playerData" ) {
+    // Require external template generator from templates.js
+    if (!(typeof window !== 'undefined' && window && window.GameTemplatesV1_1 && typeof window.GameTemplatesV1_1.playerData === 'function')) {
+        console.error('GameTemplatesV1_1.playerData is required but not available; templates.js must be loaded');
+        throw new Error('GameTemplatesV1_1.playerData is required');
+    }
 
-    const def = `
-        const ${name} = {
-            id: '${name}',
-            src: ${px.pSrcVal},
-            SCALE_FACTOR: ${px.pScaleVal},
-            STEP_FACTOR: ${px.pStepVal},
-            ANIMATION_RATE: ${px.pAnimVal},
-            INIT_POSITION: { x: ${px.initX}, y: ${px.initY} },
-            pixels: { height: ${px.pixelsH}, width: ${px.pixelsW} },
-            orientation: { rows: ${px.pRowsVal}, columns: ${px.pColsVal} },
-            down: { row: ${px.dRow}, start: 0, columns: ${px.dirCols} },
-            downRight: { row: ${px.drRow}, start: 0, columns: ${px.dirCols}, rotate: Math.PI/16 },
-            downLeft: { row: ${px.dlRow}, start: 0, columns: ${px.dirCols}, rotate: -Math.PI/16 },
-            left: { row: ${px.lRow}, start: 0, columns: ${px.dirCols} },
-            right: { row: ${px.rRow}, start: 0, columns: ${px.dirCols} },
-            up: { row: ${px.uRow}, start: 0, columns: ${px.dirCols} },
-            upLeft: { row: ${px.ulRow}, start: 0, columns: ${px.dirCols}, rotate: Math.PI/16 },
-            upRight: { row: ${px.urRow}, start: 0, columns: ${px.dirCols}, rotate: -Math.PI/16 },
-            hitbox: { widthPercentage: ${px.hbW}, heightPercentage: ${px.hbH} },
-            keypress: ${px.keypress}
-            };`;
-
-    const classEntry = `{ class: Player, data: ${name} }`;
-
-    return { def, classEntry };
-
+    const tpl = window.GameTemplatesV1_1.playerData({ name: px.name || 'player', p: p || {}, ui: ui, keypress: px.keypress, bg: (assets && assets.bg && assets[ui.bg?.value]) || null });
+    return { def: tpl, classEntry: `{ class: Player, data: ${name} }` };
 }
 
 /**
@@ -1265,7 +1244,8 @@ function npc_extract(slot, assets) {
         pixelsH: nSprite.h || 0,
         pixelsW: nSprite.w || 0,
         rows: nRows,
-        cols: nCols
+        cols: nCols,
+        nSprite: nSprite
     };
 }
 
@@ -1289,34 +1269,15 @@ function npc_code(nx, index, includeAlert = false) {
                 }
             }`
         : `function() { if (this.dialogueSystem) { this.showRandomDialogue(); } }`;
+    // Try external templates first
+    // Require external NPC template generator from templates.js
+    if (!(typeof window !== 'undefined' && window && window.GameTemplatesV1_1 && typeof window.GameTemplatesV1_1.npcData === 'function')) {
+        console.error('GameTemplatesV1_1.npcData is required but not available; templates.js must be loaded');
+        throw new Error('GameTemplatesV1_1.npcData is required');
+    }
 
-    const def = `
-        const ${varName} = {
-            id: '${nx.id}',
-            greeting: '${nx.greeting}',
-            src: ${nx.srcVal},
-            SCALE_FACTOR: ${nx.scaleFactor},
-            ANIMATION_RATE: ${nx.animRate},
-            INIT_POSITION: { x: ${nx.initX}, y: ${nx.initY} },
-            pixels: { height: ${nx.pixelsH}, width: ${nx.pixelsW} },
-            orientation: { rows: ${nx.rows}, columns: ${nx.cols} },
-            down: { row: 0, start: 0, columns: 3 },
-            right: { row: Math.min(1, ${nx.rows} - 1), start: 0, columns: 3 },
-            left: { row: Math.min(2, ${nx.rows} - 1), start: 0, columns: 3 },
-            up: { row: Math.min(3, ${nx.rows} - 1), start: 0, columns: 3 },
-            upRight: { row: Math.min(3, ${nx.rows} - 1), start: 0, columns: 3 },
-            downRight: { row: Math.min(1, ${nx.rows} - 1), start: 0, columns: 3 },
-            upLeft: { row: Math.min(2, ${nx.rows} - 1), start: 0, columns: 3 },
-            downLeft: { row: 0, start: 0, columns: 3 },
-            hitbox: { widthPercentage: 0.1, heightPercentage: 0.2 },
-            dialogues: ['${nx.greeting}'],
-            reaction: function() { if (this.dialogueSystem) { this.showReactionDialogue(); } else { console.log(this.greeting); } },
-            interact: ${interactFunc}
-        };`;
-
-    const classEntry = `{ class: Npc, data: ${varName} }`;
-
-    return { def, classEntry };
+    const tpl = window.GameTemplatesV1_1.npcData({ index: index, nId: nx.id, nMsg: nx.greeting, nSprite: nx.nSprite || { src: '', h: nx.pixelsH, w: nx.pixelsW, rows: nx.rows, cols: nx.cols }, nX: nx.initX, nY: nx.initY });
+    return { def: tpl, classEntry: `{ class: Npc, data: npcData${index} }` };
 }
 
 /**
@@ -1402,7 +1363,7 @@ function player_generate(ui, p) {
     if (!p) return { defs: [], classes: [] };
 
     const playerx = player_extract(ui, p);
-    const playerCode = player_code(playerx);
+    const playerCode = player_code(playerx, p);
     const defs = [playerCode.def];
     const classes = [playerCode.classEntry];
 
