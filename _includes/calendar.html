@@ -1088,7 +1088,7 @@
       
       // Strategy: fetch all events, match by title, then delete by ID.
       // This is reliable because the backend's confirmed endpoint is
-      // DELETE /api/calendar/delete_event/{id}.
+      // DELETE /api/calendar/delete/{id}.
       try {
         const eventsResponse = await fetch(`${javaURI}/api/calendar/events`, fetchOptions);
         if (eventsResponse.status === 401 || eventsResponse.status === 403 || (eventsResponse.redirected && eventsResponse.url && eventsResponse.url.includes('/login'))) {
@@ -1109,7 +1109,7 @@
         } else {
           const deleteResults = await Promise.all(
             eventsToDelete.map(event =>
-              fetch(`${javaURI}/api/calendar/delete_event/${event.id}`, {
+              fetch(`${javaURI}/api/calendar/delete/${event.id}`, {
                 ...fetchOptions,
                 method: 'DELETE'
               }).then(res => res.ok ? 1 : 0).catch(() => 0)
