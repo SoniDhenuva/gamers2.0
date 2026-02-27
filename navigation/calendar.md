@@ -8,6 +8,10 @@ active_tab: calendar
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.css">
 
 <!-- FullCalendar Container -->
+<div id="calendar-auth-banner" style="display:none; background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%); color: #fff; padding: 12px 20px; border-radius: 12px; margin-bottom: 12px; font-size: 0.95rem; align-items: center; gap: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+    <i class="fas fa-exclamation-triangle" style="font-size: 1.2rem;"></i>
+    <span>Your session has expired. <a href="{{site.baseurl}}/login" style="color: #fbbf24; text-decoration: underline; font-weight: 600;">Log in again</a> to view and manage your calendar events.</span>
+</div>
 <div id="calendar" class="box-border z-0"></div>
 <!-- Modal -->
 <div id="eventModal" class="fixed z-[99999] inset-0 flex items-center justify-center bg-opacity-70 backdrop-blur-sm py-4 overflow-y-auto hidden">
@@ -59,39 +63,61 @@ active_tab: calendar
 <script type="module">
     import { javaURI, fetchOptions } from '{{site.baseurl}}/assets/js/api/config.js';
 
-    // ── Calendar-specific fetch options ──────────────────────────────
-    // The Java backend returns 302 → /login when unauthenticated, but
-    // the /login page does NOT include CORS headers.  With the default
-    // redirect:'follow' the browser follows the 302, hits /login, sees
-    // no Access-Control-Allow-Credentials header, and throws a CORS
-    // TypeError — which means handleAuthError never gets a response.
-    //
-    // redirect:'manual' stops the browser from following the 302 so we
-    // receive an opaqueredirect (type:'opaqueredirect', status:0) that
-    // we can detect and handle gracefully.
+    // Calendar-specific fetch options: redirect:'manual' prevents the browser from
+    // following 302 → /login.  The /login page is missing the CORS header
+    // Access-Control-Allow-Credentials, so if the browser follows the redirect
+    // the request fails with a CORS TypeError.  With redirect:'manual' the 302
+    // comes back as an opaqueredirect response that we can detect and handle.
     const calendarFetchOptions = { ...fetchOptions, redirect: 'manual' };
 
-    // Auth-aware response handler: checks for opaque redirect (302→login
-    // blocked by manual redirect), 401, 403, or followed redirects.
+    let javaAuthenticated = true; // Track Java backend auth state
+
+    // Show/hide the auth banner
+    function showAuthBanner() {
+        const banner = document.getElementById('calendar-auth-banner');
+        if (banner) banner.style.display = 'flex';
+    }
+    function hideAuthBanner() {
+        const banner = document.getElementById('calendar-auth-banner');
+        if (banner) banner.style.display = 'none';
+    }
+
+    // Auth-aware response handler.
+    // With redirect:'manual' a 302 arrives as response.type === 'opaqueredirect'
+    // (status 0, no body).  We also check 401/403 for direct error responses.
+    // Returns true if the response indicates auth failure.
     function handleAuthError(response) {
-        // redirect:'manual' turns a 302 into an opaqueredirect (status 0)
-        if (response.type === 'opaqueredirect' || response.status === 0) {
-            console.warn('Not authenticated (redirect intercepted) — please log in');
-            return true; // signal auth failure, but don't alert/redirect (user just isn't logged in)
+        // opaqueredirect = backend sent 302 → /login (session expired)
+        if (response.type === 'opaqueredirect') {
+            console.warn('Session expired — intercepted redirect to /login');
+            javaAuthenticated = false;
+            showAuthBanner();
+            return true;
         }
         if (response.status === 401 || response.status === 403) {
             console.warn('Session expired or not authenticated (HTTP ' + response.status + ')');
-            alert('Your session has expired. Please log in again.');
-            window.location.href = '{{site.baseurl}}/login';
+            javaAuthenticated = false;
+            showAuthBanner();
             return true;
         }
-        if (response.redirected && response.url.includes('/login')) {
+        if (response.redirected && response.url && response.url.includes('/login')) {
             console.warn('Session expired — redirected to login');
-            alert('Your session has expired. Please log in again.');
-            window.location.href = '{{site.baseurl}}/login';
+            javaAuthenticated = false;
+            showAuthBanner();
             return true;
         }
         return false; // no auth issue
+    }
+
+    // Handle network errors (shouldn't happen with redirect:'manual', but kept as safety net).
+    function handleFetchError(error) {
+        if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+            console.warn('Network/CORS error — likely unauthenticated');
+            javaAuthenticated = false;
+            showAuthBanner();
+            return true;
+        }
+        return false;
     }
 
     let allEvents = []; // Global array to store all events
@@ -160,7 +186,9 @@ active_tab: calendar
             }
             return await groupsResponse.json();
         } catch (error) {
-            console.error('Error fetching user groups:', error);
+            if (!handleFetchError(error)) {
+                console.error('Error fetching user groups:', error);
+            }
             return [];
         }
     }
@@ -243,6 +271,7 @@ active_tab: calendar
                     return response.json();
                 })
                 .catch(error => {
+                    handleFetchError(error);
                     console.error("Fetch error: ", error);
                     return null;
                 });
@@ -259,6 +288,7 @@ active_tab: calendar
                     return response.json();
                 })
                 .catch(error => {
+                    handleFetchError(error);
                     console.error("Fetch error for breaks: ", error);
                     return [];
                 });
@@ -267,6 +297,11 @@ active_tab: calendar
             Promise.all([request(), getBreaks()])
                 .then(([calendarEvents, breaks]) => {
                     console.log("handleRequest - All data loaded. Breaks:", breaks);
+                    // If we got data, auth is working — mark as authenticated
+                    if (calendarEvents !== null) {
+                        javaAuthenticated = true;
+                        hideAuthBanner();
+                    }
                     allEvents = []; // Reset allEvents
                     if (calendarEvents !== null) {
                         calendarEvents.forEach(event => {
@@ -394,6 +429,7 @@ active_tab: calendar
                     displayCalendar(filterEventsByClass(currentFilter)); // Display filtered events
                 })
                 .catch(error => {
+                    handleFetchError(error);
                     console.error("handleRequest error:", error);
                     // Still render the calendar with whatever events we have (holidays at minimum)
                     displayCalendar(filterEventsByClass(currentFilter));
@@ -510,7 +546,7 @@ active_tab: calendar
                 dateClick: function (info) {
                     // Login required to create events
                     // window.user is set by login.js; currentPersonId is set by fetchUserGroups
-                    if ((!window.user || !window.user.uid) && !currentPersonId) {
+                    if (!javaAuthenticated || ((!window.user || !window.user.uid) && !currentPersonId)) {
                         alert('You must be logged in to create events. Please log in and try again.');
                         return;
                     }
@@ -595,29 +631,34 @@ active_tab: calendar
                                 individual: selectedType === 'appointment' ? currentUserName : ''
                             }
                         };
-                        allEvents.push(newEvent); // Add to allEvents
-                        displayCalendar(filterEventsByClass(currentFilter)); // Refresh calendar
+                        // Close modal immediately for responsiveness
                         document.getElementById("eventModal").style.display = "none";
+                        // Save to backend first, then refresh calendar from server
                         fetch(`${javaURI}/api/calendar/add_event`, {
                             ...calendarFetchOptions,
                             method: "POST",
                             body: JSON.stringify(newEventPayload),
                         })
                         .then(response => {
-                            if (handleAuthError(response)) return;
+                            if (handleAuthError(response)) {
+                                alert("You must be logged in to add events. Please log in and try again.");
+                                return;
+                            }
                             if (!response.ok) {
                                 throw new Error(`Failed to add new event: ${response.status} ${response.statusText}`);
                             }
                             return response.json();
                         })
                         .then((data) => {
-                            if (!data) return; // auth redirect happened
+                            if (!data) return; // auth failure already handled
                             // Re-fetch events from the backend to ensure the calendar is up-to-date
                             handleRequest();
-                            document.getElementById("eventModal").style.display = "none";
                         })
                         .catch(error => {
-                            console.error("Error adding event:", error);
+                            if (!handleFetchError(error)) {
+                                console.error("Error adding event:", error);
+                                alert("Failed to save event. Please try again.\n\nError: " + error.message);
+                            }
                         });
                     };
                 },
@@ -761,8 +802,10 @@ active_tab: calendar
                     handleRequest();
                 })
                 .catch(error => {
-                    console.error("Error updating break:", error);
-                    alert("Failed to update break. Please try again.\n\nError: " + error.message);
+                    if (!handleFetchError(error)) {
+                        console.error("Error updating break:", error);
+                        alert("Failed to update break. Please try again.\n\nError: " + error.message);
+                    }
                 });
             } else {
                 // Handle regular event editing
@@ -798,8 +841,10 @@ active_tab: calendar
                         handleRequest();
                     })
                     .catch(error => {
-                        console.error("Error adding event:", error);
-                        alert("Failed to add event. Please try again.\n\nError: " + error.message);
+                        if (!handleFetchError(error)) {
+                            console.error("Error adding event:", error);
+                            alert("Failed to add event. Please try again.\n\nError: " + error.message);
+                        }
                     });
                 } else {
                     const payload = { 
@@ -831,8 +876,10 @@ active_tab: calendar
                         handleRequest();
                     })
                     .catch(error => {
-                        console.error("Error updating event:", error);
-                        alert("Failed to update event. Please try again.\n\nError: " + error.message);
+                        if (!handleFetchError(error)) {
+                            console.error("Error updating event:", error);
+                            alert("Failed to update event. Please try again.\n\nError: " + error.message);
+                        }
                     });
                 }
             }
@@ -880,8 +927,10 @@ active_tab: calendar
                 handleRequest();
             })
             .catch(error => {
-                console.error("Error deleting:", error);
-                alert("Failed to delete. Please try again.\n\nError: " + error.message);
+                if (!handleFetchError(error)) {
+                    console.error("Error deleting:", error);
+                    alert("Failed to delete. Please try again.\n\nError: " + error.message);
+                }
             });
         };
         document.getElementById("makeBreakButton").onclick = function () {
@@ -936,8 +985,10 @@ active_tab: calendar
                 handleRequest(); // Refresh the calendar
             })
             .catch(error => {
-                console.error("Error creating break:", error);
-                alert("Failed to create break day. Please try again.\n\nError: " + error.message);
+                if (!handleFetchError(error)) {
+                    console.error("Error creating break:", error);
+                    alert("Failed to create break day. Please try again.\n\nError: " + error.message);
+                }
             });
         };
         handleRequest();
