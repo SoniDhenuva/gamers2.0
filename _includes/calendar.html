@@ -934,7 +934,7 @@
     try {
       const configModule = await import('{{ site.baseurl }}/assets/js/api/config.js');
       const javaURI = configModule.javaURI;
-      const fetchOptions = { ...configModule.fetchOptions, redirect: 'manual' };
+      const fetchOptions = configModule.fetchOptions;
       
       const events = [];
       
@@ -990,7 +990,7 @@
             method: 'POST',
             body: JSON.stringify(event)
           }).then(res => {
-            if (res.type === 'opaqueredirect' || res.status === 401 || res.status === 403) {
+            if (res.status === 401 || res.status === 403 || (res.redirected && res.url && res.url.includes('/login'))) {
               authFailed = true;
               return false;
             }
@@ -1033,7 +1033,7 @@
       
     } catch (error) {
       console.error('Error syncing:', error);
-      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      if (error instanceof TypeError && (error.message.includes('Failed to fetch') || error.message.includes('Load failed'))) {
         alert('Your session has expired. Please log in again to sync events.');
         window.location.href = '{{ site.baseurl }}/login';
       } else {
@@ -1060,7 +1060,7 @@
     try {
       const configModule = await import('{{ site.baseurl }}/assets/js/api/config.js');
       const javaURI = configModule.javaURI;
-      const fetchOptions = { ...configModule.fetchOptions, redirect: 'manual' };
+      const fetchOptions = configModule.fetchOptions;
       
       const titlesToDelete = [];
       const priorities = ['P0', 'P1', 'P2', 'P3'];
@@ -1091,7 +1091,7 @@
       // DELETE /api/calendar/delete_event/{id}.
       try {
         const eventsResponse = await fetch(`${javaURI}/api/calendar/events`, fetchOptions);
-        if (eventsResponse.type === 'opaqueredirect' || eventsResponse.status === 401 || eventsResponse.status === 403) {
+        if (eventsResponse.status === 401 || eventsResponse.status === 403 || (eventsResponse.redirected && eventsResponse.url && eventsResponse.url.includes('/login'))) {
           alert('Your session has expired. Please log in again.');
           window.location.href = '{{ site.baseurl }}/login';
           return;
@@ -1155,7 +1155,7 @@
       
     } catch (error) {
       console.error('Error removing:', error);
-      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      if (error instanceof TypeError && (error.message.includes('Failed to fetch') || error.message.includes('Load failed'))) {
         alert('Your session has expired. Please log in again to remove events.');
         window.location.href = '{{ site.baseurl }}/login';
       } else {
@@ -1369,11 +1369,11 @@
     try {
       const configModule = await import('{{ site.baseurl }}/assets/js/api/config.js');
       const javaURI = configModule.javaURI;
-      const fetchOptions = { ...configModule.fetchOptions, redirect: 'manual' };
+      const fetchOptions = configModule.fetchOptions;
       
       if (javaURI) {
         const response = await fetch(`${javaURI}/api/calendar/events`, fetchOptions);
-        if (response.type === 'opaqueredirect' || response.status === 401 || response.status === 403) {
+        if (response.status === 401 || response.status === 403 || (response.redirected && response.url && response.url.includes('/login'))) {
           console.warn('Session expired during calendar preview fetch');
           fetchError = true;
         } else if (response.ok) {
