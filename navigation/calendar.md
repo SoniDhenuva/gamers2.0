@@ -38,11 +38,6 @@ active_tab: calendar
                 <option value="P2" class="bg-yellow-200 text-yellow-900" selected>P2 - Medium</option>
                 <option value="P3" class="bg-green-200 text-green-900">P3 - Low</option>
             </select>
-            <label for="editClassPeriod" class="block mt-2 mb-1 text-lg font-semibold">Class Period:</label>
-            <select id="editClassPeriod" disabled class="w-full p-3 rounded-xl border border-gray-700 text-base box-border mb-4">
-                <option value="">-- Select Period --</option>
-                <!-- Options populated dynamically from user's groups -->
-            </select>
             <label for="editGroupName" class="block mt-2 mb-1 text-lg font-semibold">Group:</label>
             <select id="editGroupName" disabled class="w-full p-3 rounded-xl border border-gray-700 text-base box-border mb-4">
                 <option value="">-- Select Group (optional) --</option>
@@ -63,12 +58,15 @@ active_tab: calendar
 <script type="module">
     import { javaURI, fetchOptions } from '{{site.baseurl}}/assets/js/api/config.js';
 
-    // Calendar-specific fetch options: redirect:'manual' prevents the browser from
-    // following 302 → /login.  The /login page is missing the CORS header
-    // Access-Control-Allow-Credentials, so if the browser follows the redirect
-    // the request fails with a CORS TypeError.  With redirect:'manual' the 302
-    // comes back as an opaqueredirect response that we can detect and handle.
-    const calendarFetchOptions = { ...fetchOptions, redirect: 'manual' };
+    // Use standard fetchOptions (credentials:'include').
+    // The Java backend's session cookie (sess_java_spring) may be missing
+    // SameSite=None;Secure, so cross-origin requests from pages.opencodingsociety.com
+    // might not include the cookie. When unauthenticated, Spring sends a 302 → /login
+    // whose response is missing Access-Control-Allow-Credentials, causing a CORS
+    // TypeError. We catch that gracefully and show the auth banner.
+    //
+    // NOTE: We intentionally do NOT use redirect:'manual' because it prevents the
+    // browser from handling cookies correctly in all cases.
 
     let javaAuthenticated = true; // Track Java backend auth state
 
@@ -83,25 +81,25 @@ active_tab: calendar
     }
 
     // Auth-aware response handler.
-    // With redirect:'manual' a 302 arrives as response.type === 'opaqueredirect'
-    // (status 0, no body).  We also check 401/403 for direct error responses.
+    // Checks for 401/403 (direct auth errors) or redirect to /login.
     // Returns true if the response indicates auth failure.
     function handleAuthError(response) {
-        // opaqueredirect = backend sent 302 → /login (session expired)
-        if (response.type === 'opaqueredirect') {
-            console.warn('Session expired — intercepted redirect to /login');
-            javaAuthenticated = false;
-            showAuthBanner();
-            return true;
-        }
         if (response.status === 401 || response.status === 403) {
             console.warn('Session expired or not authenticated (HTTP ' + response.status + ')');
             javaAuthenticated = false;
             showAuthBanner();
             return true;
         }
+        // If the browser followed a 302 → /login, the response.url will contain '/login'
         if (response.redirected && response.url && response.url.includes('/login')) {
             console.warn('Session expired — redirected to login');
+            javaAuthenticated = false;
+            showAuthBanner();
+            return true;
+        }
+        // opaqueredirect check (safety net if redirect:'manual' is ever re-added)
+        if (response.type === 'opaqueredirect') {
+            console.warn('Session expired — intercepted redirect to /login');
             javaAuthenticated = false;
             showAuthBanner();
             return true;
@@ -109,10 +107,13 @@ active_tab: calendar
         return false; // no auth issue
     }
 
-    // Handle network errors (shouldn't happen with redirect:'manual', but kept as safety net).
+    // Handle network/CORS errors.
+    // When unauthenticated, the 302 → /login redirect fails CORS because the /login
+    // endpoint is missing Access-Control-Allow-Credentials. This results in a
+    // TypeError: Failed to fetch — which we treat as "not logged in".
     function handleFetchError(error) {
-        if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-            console.warn('Network/CORS error — likely unauthenticated');
+        if (error instanceof TypeError && (error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || error.message.includes('Load failed'))) {
+            console.warn('Network/CORS error — likely unauthenticated (session cookie may not be sent cross-origin)');
             javaAuthenticated = false;
             showAuthBanner();
             return true;
@@ -123,7 +124,6 @@ active_tab: calendar
     let allEvents = []; // Global array to store all events
     let currentFilter = null; // Track the current filter
     let showAppointments = true; // Toggle for Course View (false) vs All View (true)
-    let currentPeriodFilter = null; // Track the class period filter
     let userGroups = []; // Store user's groups from API
     let currentPersonId = null; // Store current user's person ID
 
@@ -156,7 +156,7 @@ active_tab: calendar
     async function fetchUserGroups() {
         try {
             // First get the current user's person ID
-            const personResponse = await fetch(`${javaURI}/api/person/get`, calendarFetchOptions);
+            const personResponse = await fetch(`${javaURI}/api/person/get`, fetchOptions);
             if (handleAuthError(personResponse)) return [];
             if (!personResponse.ok) {
                 console.warn('Could not fetch user info, user may not be logged in');
@@ -171,12 +171,12 @@ active_tab: calendar
             }
 
             // Then fetch groups for this person
-            const groupsResponse = await fetch(`${javaURI}/api/groups/person/${currentPersonId}`, calendarFetchOptions);
+            const groupsResponse = await fetch(`${javaURI}/api/groups/person/${currentPersonId}`, fetchOptions);
             if (handleAuthError(groupsResponse)) return [];
             if (!groupsResponse.ok) {
                 // Fallback: try fetching all groups and filter
                 console.warn('Person groups endpoint not available, using fallback');
-                const fallbackResponse = await fetch(`${javaURI}/api/groups`, calendarFetchOptions);
+                const fallbackResponse = await fetch(`${javaURI}/api/groups`, fetchOptions);
                 if (!fallbackResponse.ok) return [];
                 const allGroups = await fallbackResponse.json();
                 // Filter to only groups this user is a member of
@@ -193,24 +193,9 @@ active_tab: calendar
         }
     }
 
-    // Populate group-related dropdowns with user's groups
+    // Populate group dropdown with user's groups
     function populateGroupDropdowns() {
-        const editClassPeriodSelect = document.getElementById('editClassPeriod');
         const editGroupNameSelect = document.getElementById('editGroupName');
-
-        // Get unique periods from user's groups
-        const uniquePeriods = [...new Set(userGroups.map(g => g.period).filter(p => p != null))].sort();
-
-        // Populate editClassPeriod dropdown with periods from user's groups
-        if (editClassPeriodSelect) {
-            editClassPeriodSelect.innerHTML = '<option value="">-- Select Period --</option>';
-            uniquePeriods.forEach(period => {
-                const option = document.createElement('option');
-                option.value = `P${period}`;
-                option.textContent = `Period ${period}`;
-                editClassPeriodSelect.appendChild(option);
-            });
-        }
 
         // Populate editGroupName dropdown with user's groups
         if (editGroupNameSelect) {
@@ -222,16 +207,6 @@ active_tab: calendar
                 editGroupNameSelect.appendChild(option);
             });
         }
-    }
-
-    // Build period filter dropdown HTML from user's groups
-    function buildPeriodFilterDropdownHTML() {
-        const uniquePeriods = [...new Set(userGroups.map(g => g.period).filter(p => p != null))].sort();
-        let html = '<option value="">All Periods</option>';
-        uniquePeriods.forEach(period => {
-            html += `<option value="P${period}">Period ${period}</option>`;
-        });
-        return html;
     }
 
     document.addEventListener("DOMContentLoaded", async function () {
@@ -261,7 +236,7 @@ active_tab: calendar
             return (breakEvent.extendedProps && breakEvent.extendedProps.breakName) || breakEvent.breakName || breakEvent.title || null;
         }
         function request() {
-            return fetch(`${javaURI}/api/calendar/events`, calendarFetchOptions)
+            return fetch(`${javaURI}/api/calendar/events`, fetchOptions)
                 .then(response => {
                     if (handleAuthError(response)) return null;
                     if (response.status !== 200) {
@@ -278,7 +253,7 @@ active_tab: calendar
         }
         // getAssignments removed - assignments are no longer fetched here
         function getBreaks() {
-            return fetch(`${javaURI}/api/calendar/breaks`, calendarFetchOptions)
+            return fetch(`${javaURI}/api/calendar/breaks`, fetchOptions)
                 .then(response => {
                     if (handleAuthError(response)) return [];
                     if (!response.ok) {
@@ -325,6 +300,7 @@ active_tab: calendar
                                     // Normalize stored start to YYYY-MM-DD to avoid timezone parsing as UTC
                                     start: formatDate(event.date),
                                     isBreak: false,
+                                    period: event.period || null, // Top-level for course filter (CSA, CSP, CSSE)
                                     classNames: [`priority-${priority.toLowerCase()}`],
                                     extendedProps: {
                                         type: event.type || 'event',
@@ -443,11 +419,39 @@ active_tab: calendar
             calendar = new FullCalendar.Calendar(calendarEl, {
                 initialView: 'dayGridMonth',
                 headerToolbar: {
-                    left: 'prev,next today viewToggle',
+                    left: 'prev,next today allButton,csaButton,cspButton,csseButton viewToggle',
                     center: 'title',
                     right: 'dayGridMonth,dayGridWeek,dayGridDay'
                 },
                 customButtons: {
+                    allButton: {
+                        text: 'All',
+                        click: function () {
+                            currentFilter = null;
+                            displayCalendar(filterEventsByClass(currentFilter));
+                        }
+                    },
+                    csaButton: {
+                        text: 'CSA',
+                        click: function () {
+                            currentFilter = 'CSA';
+                            displayCalendar(filterEventsByClass(currentFilter));
+                        }
+                    },
+                    cspButton: {
+                        text: 'CSP',
+                        click: function () {
+                            currentFilter = 'CSP';
+                            displayCalendar(filterEventsByClass(currentFilter));
+                        }
+                    },
+                    csseButton: {
+                        text: 'CSSE',
+                        click: function () {
+                            currentFilter = 'CSSE';
+                            displayCalendar(filterEventsByClass(currentFilter));
+                        }
+                    },
                     viewToggle: {
                         text: showAppointments ? 'All View' : 'Course View',
                         click: function () {
@@ -517,8 +521,6 @@ active_tab: calendar
                     document.getElementById("editPriority").disabled = true;
                     document.getElementById("editEventType").value = currentEvent.extendedProps.type || "event";
                     document.getElementById("editEventType").disabled = true;
-                    document.getElementById("editClassPeriod").value = currentEvent.extendedProps.classPeriod || "";
-                    document.getElementById("editClassPeriod").disabled = true;
                     document.getElementById("editGroupName").value = currentEvent.extendedProps.groupName || "";
                     document.getElementById("editGroupName").disabled = true;
                     document.getElementById("eventModal").style.display = "block";
@@ -566,8 +568,6 @@ active_tab: calendar
                     document.getElementById("editPriority").value = "P2"; // Default to medium priority
                     document.getElementById("editEventType").disabled = false; // Enable event type for new events
                     document.getElementById("editEventType").value = "event"; // Default to event
-                    document.getElementById("editClassPeriod").disabled = false; // Enable class period for new events
-                    document.getElementById("editClassPeriod").value = ""; // Reset class period
                     document.getElementById("editGroupName").disabled = false; // Enable group name for new events
                     document.getElementById("editGroupName").value = ""; // Reset group name
                     document.getElementById('editDateDisplay').textContent = formatDisplayDate(info.date);
@@ -583,25 +583,12 @@ active_tab: calendar
                         const updatedDate = document.getElementById("editDate").value;
                         const updatedPriority = document.getElementById("editPriority").value;
                         const selectedType = document.getElementById("editEventType").value;
-                        const selectedClassPeriod = document.getElementById("editClassPeriod").value;
                         
                         if (!updatedTitle || !updatedDescription || !updatedDate) {
                             alert("Title, Description, and Date cannot be empty!");
                             return;
                         }
-                        
-                        // 4-appointment limit per period check
-                        if (selectedType === 'appointment' && selectedClassPeriod) {
-                            const appointmentsInPeriod = allEvents.filter(e => 
-                                e.extendedProps?.type === 'appointment' &&
-                                e.extendedProps?.classPeriod === selectedClassPeriod &&
-                                (e.start === updatedDate || formatDate(new Date(e.start)) === updatedDate)
-                            );
-                            if (appointmentsInPeriod.length >= 4) {
-                                alert(`Cannot create appointment: Period ${selectedClassPeriod} already has 4 appointments on ${updatedDate}. Please choose a different period.`);
-                                return;
-                            }
-                        }
+
                         // Get current user name for appointments
                         const currentUserName = (window.user && window.user.name) ? window.user.name : '';
                         const newEventPayload = {
@@ -609,7 +596,6 @@ active_tab: calendar
                             description: updatedDescription,
                             date: updatedDate,
                             priority: updatedPriority,
-                            classPeriod: selectedClassPeriod,
                             groupName: document.getElementById("editGroupName").value,
                             type: selectedType,
                             individual: selectedType === 'appointment' ? currentUserName : ''
@@ -622,11 +608,9 @@ active_tab: calendar
                             priority: updatedPriority,
                             classNames: [`priority-${updatedPriority.toLowerCase()}`],
                             type: selectedType,
-                            classPeriod: selectedClassPeriod,
                             groupName: document.getElementById("editGroupName").value,
                             extendedProps: {
                                 type: selectedType,
-                                classPeriod: selectedClassPeriod,
                                 groupName: document.getElementById("editGroupName").value,
                                 individual: selectedType === 'appointment' ? currentUserName : ''
                             }
@@ -635,7 +619,7 @@ active_tab: calendar
                         document.getElementById("eventModal").style.display = "none";
                         // Save to backend first, then refresh calendar from server
                         fetch(`${javaURI}/api/calendar/add_event`, {
-                            ...calendarFetchOptions,
+                            ...fetchOptions,
                             method: "POST",
                             body: JSON.stringify(newEventPayload),
                         })
@@ -676,20 +660,6 @@ active_tab: calendar
                 // }
             });
             calendar.render();
-            
-            // Inject period filter dropdown into toolbar after render
-            const toolbarLeft = document.querySelector('.fc-toolbar-chunk:first-child');
-            if (toolbarLeft && !document.getElementById('periodFilterDropdown')) {
-                const dropdown = document.createElement('select');
-                dropdown.id = 'periodFilterDropdown';
-                dropdown.innerHTML = buildPeriodFilterDropdownHTML();
-                dropdown.value = currentPeriodFilter || '';
-                dropdown.addEventListener('change', function() {
-                    currentPeriodFilter = this.value || null;
-                    displayCalendar(filterEventsByClass(currentFilter));
-                });
-                toolbarLeft.appendChild(dropdown);
-            }
         }
         function filterEventsByClass(className) {
             let filtered = allEvents;
@@ -699,7 +669,8 @@ active_tab: calendar
                 // Include break events regardless of filter, plus filtered regular events
                 filtered = filtered.filter(event => {
                     const isBreak = event.extendedProps && event.extendedProps.isBreak === true;
-                    return isBreak || event.period === className;
+                    const eventPeriodCourse = event.period || (event.extendedProps && event.extendedProps.period);
+                    return isBreak || eventPeriodCourse === className;
                 });
             }
             
@@ -712,16 +683,7 @@ active_tab: calendar
                     return isBreak || !isAppointment;
                 });
             }
-            
-            // Filter by class period if specified
-            if (currentPeriodFilter) {
-                filtered = filtered.filter(event => {
-                    const isBreak = event.extendedProps && event.extendedProps.isBreak === true;
-                    const eventPeriod = event.classPeriod || (event.extendedProps && event.extendedProps.classPeriod);
-                    // Keep breaks and events matching the period filter
-                    return isBreak || eventPeriod === currentPeriodFilter;
-                });
-            }
+
             // Sort by priority (P0 first, then P1, P2, P3), breaks are not prioritized
             return filtered.sort((a, b) => {
                 // Breaks always come first
@@ -756,7 +718,6 @@ active_tab: calendar
             document.getElementById("editDescription").contentEditable = false;
             document.getElementById("editPriority").disabled = true;
             document.getElementById("editEventType").disabled = true;
-            document.getElementById("editClassPeriod").disabled = true;
             document.getElementById("editGroupName").disabled = true;
         };
         document.getElementById("saveButton").onclick = function () {
@@ -771,7 +732,6 @@ active_tab: calendar
             document.getElementById("editTitle").contentEditable = false;
             document.getElementById("editPriority").disabled = true;
             document.getElementById("editEventType").disabled = true;
-            document.getElementById("editClassPeriod").disabled = true;
             document.getElementById("editGroupName").disabled = true;      
             if (!updatedTitle || !updatedDescription) {
                 alert("Title and Description cannot be empty!");
@@ -785,7 +745,7 @@ active_tab: calendar
                     description: updatedDescription
                 };                
                 fetch(`${javaURI}/api/calendar/breaks/${id}`, {
-                    ...calendarFetchOptions,
+                    ...fetchOptions,
                     method: "PUT",
                     body: JSON.stringify(breakPayload),
                 })
@@ -824,7 +784,7 @@ active_tab: calendar
                         priority: updatedPriority
                     }; 
                     fetch(`${javaURI}/api/calendar/add_event`, {
-                        ...calendarFetchOptions,
+                        ...fetchOptions,
                         method: "POST",
                         body: JSON.stringify(newEventPayload),
                     })
@@ -853,13 +813,12 @@ active_tab: calendar
                         date: updatedDate, 
                         priority: updatedPriority,
                         type: document.getElementById("editEventType").value,
-                        classPeriod: document.getElementById("editClassPeriod").value,
                         groupName: document.getElementById("editGroupName").value,
                         individual: currentEvent.extendedProps?.individual || ''
                     };
                     const id = currentEvent.id;
                     fetch(`${javaURI}/api/calendar/update_event/${id}`, {
-                        ...calendarFetchOptions,
+                        ...fetchOptions,
                         method: "PUT",
                         body: JSON.stringify(payload),
                     })
@@ -897,7 +856,6 @@ active_tab: calendar
             if (!isBreak) {
                 document.getElementById("editPriority").disabled = false;
                 document.getElementById("editEventType").disabled = false;
-                document.getElementById("editClassPeriod").disabled = false;
                 document.getElementById("editGroupName").disabled = false;
             }
             document.getElementById("editDescription").innerHTML = currentEvent.extendedProps.description || "";
@@ -910,7 +868,7 @@ active_tab: calendar
             if (!confirmation) return;
             const endpoint = isBreak ? `${javaURI}/api/calendar/breaks/${id}` : `${javaURI}/api/calendar/delete_event/${id}`;
             fetch(endpoint, {
-                ...calendarFetchOptions,
+                ...fetchOptions,
                 method: "DELETE"
             })
             .then(response => {
@@ -964,7 +922,7 @@ active_tab: calendar
             };
             console.log("Sending break payload:", breakPayload);
             fetch(`${javaURI}/api/calendar/breaks/create`, {
-                ...calendarFetchOptions,
+                ...fetchOptions,
                 method: "POST",
                 body: JSON.stringify(breakPayload),
             })
@@ -1003,7 +961,6 @@ active_tab: calendar
             document.getElementById("editDescription").contentEditable = false;
             document.getElementById("editPriority").disabled = true;
             document.getElementById("editEventType").disabled = true;
-            document.getElementById("editClassPeriod").disabled = true;
             document.getElementById("editGroupName").disabled = true;
         }
     });
@@ -1017,7 +974,6 @@ active_tab: calendar
             document.getElementById("editDescription").contentEditable = false;
             document.getElementById("editPriority").disabled = true;
             document.getElementById("editEventType").disabled = true;
-            document.getElementById("editClassPeriod").disabled = true;
             document.getElementById("editGroupName").disabled = true;
             modal.style.display = "none";
         }
