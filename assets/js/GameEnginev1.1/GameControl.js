@@ -220,6 +220,7 @@ class GameControl {
             alert("Level ended.");
         } else {
             alert("All levels completed.");
+            location.reload();
         }
         
         // Clean up any lingering interaction handlers
