@@ -1,7 +1,7 @@
-import Background from './essentials/Background.js';
-import Player from './essentials/Player.js';
-import Npc from './essentials/Npc.js';
-import GameControl from './essentials/GameControl.js';
+import Background from './Background.js';
+import Player from './Player.js';
+import Npc from './Npc.js';
+import GameControl from './GameControl.js';
 import GameLevelDesert from './GameLevelDesert.js';
 import Creeper from './Creeper.js';
 

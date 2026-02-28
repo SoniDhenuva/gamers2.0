@@ -1,7 +1,7 @@
-import GameEnvBackground from './essentials/GameEnvBackground.js';
-import Npc from './essentials/Npc.js';
-import Player from './essentials/Player.js';
-import GameControl from './essentials/GameControl.js';
+import GameEnvBackground from './GameEnvBackground.js';
+import Npc from './Npc.js';
+import Player from './Player.js';
+import GameControl from './GameControl.js';
 
 import GameLevelRetro from './GameLevelRetro.js';
 import Game from './Game.js';

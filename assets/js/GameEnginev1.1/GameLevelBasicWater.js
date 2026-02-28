@@ -1,5 +1,5 @@
-import GameEnvBackground from './essentials/GameEnvBackground.js';
-import Player from './essentials/Player.js';
+import GameEnvBackground from './GameEnvBackground.js';
+import Player from './Player.js';
 
 class GameLevelBasicWater {
   constructor(gameEnv) {

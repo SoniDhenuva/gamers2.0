@@ -1,13 +1,13 @@
-import GamEnvBackground from './essentials/GameEnvBackground.js';
-import BackgroundParallax from './essentials/BackgroundParallax.js';
-import Player from './essentials/Player.js';
-import Npc from './essentials/Npc.js';  // Direct import for portal creation
-import Collectible from './essentials/Collectible.js';
+import GamEnvBackground from './GameEnvBackground.js';
+import BackgroundParallax from './BackgroundParallax.js';
+import Player from './Player.js';
+import Npc from './Npc.js';  // Direct import for portal creation
+import Collectible from './Collectible.js';
 import Quiz from './Quiz.js';
-import Game from './essentials/Game.js';
-import Enemy from './essentials/Enemy.js';
+import Game from './Game.js';
+import Enemy from './Enemy.js';
 // Using v1.5 DialogueSystem for improved ID sanitization
-import DialogueSystem from '../GameEnginev1.1/DialogueSystem.js';
+import DialogueSystem from './DialogueSystem.js';
 
 class GameLevelEnd {
   constructor(gameEnv) {

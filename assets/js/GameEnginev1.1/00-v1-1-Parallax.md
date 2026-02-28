@@ -11,8 +11,8 @@ permalink: /gamify/parallaxv1-1
 
 <script type="module">
     // Adnventure Game assets locations
-    import Core from "/assets/js/GameEnginev1.1/essentials/Game.js";
-    import GameControl from "/assets/js/GameEnginev1.1/essentials/GameControl.js";
+    import Core from "/assets/js/GameEnginev1.1/Game.js";
+    import GameControl from "/assets/js/GameEnginev1.1/GameControl.js";
     import GameLevelParallaxFish from "/assets/js/GameEnginev1.1/GameLevelParallaxFish.js";
     import GameLevelParallaxStairs from "/assets/js/GameEnginev1.1/GameLevelParallaxStairs.js";
     import { pythonURI, javaURI, fetchOptions } from '{{site.baseurl}}/assets/js/api/config.js';

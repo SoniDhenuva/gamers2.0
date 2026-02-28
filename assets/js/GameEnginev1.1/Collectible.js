@@ -1,5 +1,6 @@
 // Collectible.js with DialogueSystem integration
 import Character from "./Character.js";
+// Using v1.5 DialogueSystem for improved ID sanitization
 import DialogueSystem from "./DialogueSystem.js";
 
 class Collectible extends Character {

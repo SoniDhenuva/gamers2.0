@@ -1,21 +1,21 @@
 // To build GameLevels, each contains GameObjects from below imports
-import GamEnvBackground from './essentials/GameEnvBackground.js';
-import Player from './essentials/Player.js';
-import Npc from './essentials/Npc.js';
+import GamEnvBackground from './GameEnvBackground.js';
+import Player from './Player.js';
+import Npc from './Npc.js';
 import Quiz from './Quiz.js';
 // Using v1.5 DialogueSystem for improved ID sanitization
-import DialogueSystem from '../GameEnginev1.1/DialogueSystem.js';
-import GameControl from './essentials/GameControl.js';
+import DialogueSystem from './DialogueSystem.js';
+import GameControl from './GameControl.js';
 import GameLevelStarWars from './GameLevelStarWars.js';
 import GameLevelMeteorBlaster from './GameLevelMeteorBlaster.js';
 import GameLevelMinesweeper from './GameLevelMinesweeper.js';
 import GameLevelEnd from './GameLevelEnd.js';
 import GameLevelOverworld from './GameLevelOverworld.js';
-import AINpc from '../GameEnginev1.1/ai/AiNpc.js'
-import Coin from '../GameEnginev1.1/Coin.js';
+import AINpc from './ai/AiNpc.js'
+import Coin from './Coin.js';
 
 // Import Background for PlatformerMini
-import Background from './essentials/Background.js';
+import Background from './Background.js';
 
 class GameLevelDesert {
  constructor(gameEnv) {

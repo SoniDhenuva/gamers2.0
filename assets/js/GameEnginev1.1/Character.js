@@ -149,6 +149,12 @@ class Character extends GameObject {
      * 
      */
     update() {
+        // If the game is paused, draw the current state but skip updates and movement
+        if (this.gameEnv && this.gameEnv.gameControl && this.gameEnv.gameControl.isPaused) {
+            this.draw();
+            return;
+        }
+
         this.draw();
         this.collisionChecks();
         this.move();
@@ -229,6 +235,9 @@ class Character extends GameObject {
      * Updates the frame index for animation at a slower rate.
      */
     updateAnimationFrame() {
+        // Skip advancing animation frames while paused
+        if (this.gameEnv && this.gameEnv.gameControl && this.gameEnv.gameControl.isPaused) return;
+
         this.frameCounter++;
         if (this.frameCounter % this.animationRate === 0) {
             const directionData = this.spriteData[this.direction] || {};
@@ -252,12 +261,8 @@ class Character extends GameObject {
         this.canvas.style.width = `${this.width}px`;
         this.canvas.style.height = `${this.height}px`;
         this.canvas.style.position = 'absolute';
-        const offsetLeft = this.gameEnv?.canvasOffsetLeft || 0;
-        const offsetTop = this.gameEnv?.canvasOffsetTop || 0;
-        const scaleX = this.gameEnv?.canvasScaleX || 1;
-        const scaleY = this.gameEnv?.canvasScaleY || 1;
-        this.canvas.style.left = `${offsetLeft + (this.position.x * scaleX)}px`;
-        this.canvas.style.top = `${offsetTop + (this.position.y * scaleY)}px`;
+        this.canvas.style.left = `${this.position.x}px`;
+        this.canvas.style.top = `${this.gameEnv.top + this.position.y}px`;
         
         // Use the zIndex from data if provided, otherwise use a default of 10
         this.canvas.style.zIndex = (this.data && this.data.zIndex !== undefined) ? this.data.zIndex : "10";
@@ -311,13 +316,16 @@ class Character extends GameObject {
      */
     move(x, y) {
 
+        // Do not change position while paused
+        if (this.gameEnv && this.gameEnv.gameControl && this.gameEnv.gameControl.isPaused) return;
+
         if(x != undefined){
             this.position.x = x;
         }
         if(x != undefined){
             this.position.y = y;
         }
-        
+
         // Update or change position according to velocity events
         this.position.x += this.velocity.x;
         this.position.y += this.velocity.y;

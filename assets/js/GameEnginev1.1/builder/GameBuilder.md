@@ -1531,10 +1531,10 @@ function gamelevel_code(defs = [], classes = []) {
  * Literals are defined at left edge to comply with Code Generation .
 */
 const importsSection = `
-import GameEnvBackground from '/assets/js/GameEnginev1.1/essentials/GameEnvBackground.js';
-import Player from '/assets/js/GameEnginev1.1/essentials/Player.js';
-import Npc from '/assets/js/GameEnginev1.1/essentials/Npc.js';
-import Barrier from '/assets/js/GameEnginev1.1/essentials/Barrier.js';
+import GameEnvBackground from '/assets/js/GameEnginev1.1/GameEnvBackground.js';
+import Player from '/assets/js/GameEnginev1.1/Player.js';
+import Npc from '/assets/js/GameEnginev1.1/Npc.js';
+import Barrier from '/assets/js/GameEnginev1.1/Barrier.js';
 `; // end of importSection
 
 const gameLevelStart = `
@@ -2589,7 +2589,7 @@ function generateStepCode(currentStep) {
             ui.gameContainer.id = 'gameContainer';
         }
 
-        const GameModule = await import(baseUrl + '/assets/js/GameEnginev1.1/essentials/Game.js');
+        const GameModule = await import(baseUrl + '/assets/js/GameEnginev1.1/Game.js');
         const Game = GameModule.default || GameModule.Core || GameModule;
 
         // Update env dimensions based on container

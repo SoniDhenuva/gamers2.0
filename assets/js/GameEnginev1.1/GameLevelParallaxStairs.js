@@ -1,6 +1,6 @@
 // To build GameLevels, each contains GameObjects from below imports
-import BackgroundParallax from './essentials/BackgroundParallax.js';
-import GamEnvBackground from './essentials/GameEnvBackground.js';
+import BackgroundParallax from './BackgroundParallax.js';
+import GamEnvBackground from './GameEnvBackground.js';
 
 class GameLevelParallaxStairs {
   constructor(gameEnv) {

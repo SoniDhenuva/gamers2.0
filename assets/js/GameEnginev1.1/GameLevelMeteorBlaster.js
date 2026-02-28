@@ -1,7 +1,7 @@
-import GameEnvBackground from "./essentials/GameEnvBackground.js"
-import Player from "./essentials/Player.js"
+import GameEnvBackground from "./GameEnvBackground.js"
+import Player from "./Player.js"
 import Meteor from "./Meteor.js"
-import Character from "./essentials/Character.js";
+import Character from "./Character.js";
 import Quiz from "./Quiz.js"
 
 // Ensure required images are preloaded for this mini-game. Some older

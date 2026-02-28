@@ -1,4 +1,4 @@
-import Game from "./essentials/Game.js";
+import Game from "./Game.js";
 class Quiz {
     constructor(game = null) {
         this.game = game;

@@ -1,5 +1,6 @@
 // Npc.js with DialogueSystem integration
 import Character from "./Character.js";
+// Using v1.5 DialogueSystem for improved ID sanitization
 import DialogueSystem from "./DialogueSystem.js";
 
 class Npc extends Character {
@@ -14,9 +15,9 @@ class Npc extends Character {
         this.bindInteractKeyListeners();
         
         // IMPORTANT: Create a unique ID for each NPC to avoid conflicts
-        // Normalize the id to remove whitespace and invalid characters
-        const rawUnique = (data?.id || 'npc') + "_" + Math.random().toString(36).substr(2, 9);
-        this.uniqueId = String(rawUnique).replace(/\s+/g, '_').replace(/[^A-Za-z0-9_-]/g, '');
+        // Sanitize id to remove/replace spaces (spaces are not valid in DOM tokens)
+        const sanitizedId = (data?.id || "").replace(/\s+/g, "_");
+        this.uniqueId = sanitizedId + "_" + Math.random().toString(36).substr(2, 9);
         
         // IMPORTANT: Create a local dialogue system for this NPC specifically
         if (data?.dialogues) {

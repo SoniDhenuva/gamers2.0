@@ -12,7 +12,7 @@ permalink: /gamify/adventureGamev1-1
 <script type="module">
 
     // Adnventure Game assets locations
-    import Game from "/assets/js/GameEnginev1.1/essentials/Game.js";
+    import Game from "/assets/js/GameEnginev1.1/Game.js";
     import GameLevelWater from "/assets/js/GameEnginev1.1/GameLevelWater.js";
     import GameLevelDesert from "/assets/js/GameEnginev1.1/GameLevelDesert.js";
     import GameLevelEnd from "/assets/js/GameEnginev1.1/GameLevelEnd.js";

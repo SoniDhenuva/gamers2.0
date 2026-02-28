@@ -1,5 +1,5 @@
-import Game from './essentials/Game.js';
-import GameControl from './essentials/GameControl.js';
+import Game from './Game.js';
+import GameControl from './GameControl.js';
 import Quiz from './Quiz.js';
 import Inventory from "./Inventory.js";
 import { defaultItems } from "./items.js";
